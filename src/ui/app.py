@@ -1,15 +1,11 @@
 import os
 import json
 import time
+import html
 import streamlit as st
 import pandas as pd
 import altair as alt
 from dotenv import load_dotenv
-import sys
-from pathlib import Path
-
-# Add project root directory to sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.extractors.rule_based import RuleBasedExtractor
 from src.extractors.prompt_based import PromptBasedExtractor
@@ -28,59 +24,111 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS styling
+
+def render_badge_chips(items, badge_type: str = "tech") -> str:
+    """Safely renders a collection of entity items as an inline flex container of chips.
+    Guarantees zero unescaped tags or broken quotes by escaping text and attributes.
+    """
+    if not items:
+        return "<p style='color: #888; font-size: 0.88rem; font-style: italic; margin-top: 4px;'>None detected</p>"
+
+    chips_html = []
+    for item in items:
+        if hasattr(item, "name"):
+            name = item.name
+            if hasattr(item, "is_required"):
+                req_text = "Req" if item.is_required else "Plus"
+                label = f"{name} ({req_text})"
+            else:
+                label = name
+
+            tooltip_parts = []
+            if getattr(item, "proficiency_level", None):
+                tooltip_parts.append(f"Level: {item.proficiency_level}")
+            if getattr(item, "purpose", None):
+                tooltip_parts.append(f"Purpose: {item.purpose}")
+            if getattr(item, "context_snippet", None):
+                clean_snippet = str(item.context_snippet).replace("\r", " ").replace("\n", " ").strip()
+                if len(clean_snippet) > 180:
+                    clean_snippet = clean_snippet[:177] + "..."
+                tooltip_parts.append(f"Context: {clean_snippet}")
+            tooltip = " | ".join(tooltip_parts)
+        else:
+            label = str(item)
+            tooltip = ""
+
+        safe_label = html.escape(str(label))
+        safe_title = ""
+        if tooltip:
+            safe_title = f' title="{html.escape(tooltip, quote=True)}"'
+
+        chips_html.append(f'<span class="custom-chip chip-{badge_type}"{safe_title}>{safe_label}</span>')
+
+    return f'<div class="chip-container">{"".join(chips_html)}</div>'
+
+
+# Custom CSS styling (supports both Dark and Light mode automatically)
 st.markdown("""
 <style>
     .metric-card {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
+        background-color: rgba(128, 128, 128, 0.08);
+        border: 1px solid rgba(128, 128, 128, 0.2);
         border-radius: 8px;
         padding: 14px;
         margin-bottom: 10px;
     }
-    .badge-tech {
-        background-color: #e3f2fd;
-        color: #0d47a1;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.88rem;
-        margin: 3px;
-        display: inline-block;
-        font-weight: 500;
-        border: 1px solid #bbdefb;
+    .chip-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+        margin-bottom: 16px;
     }
-    .badge-soft {
-        background-color: #f3e5f5;
-        color: #4a148c;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.88rem;
-        margin: 3px;
-        display: inline-block;
+    .custom-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.86rem;
         font-weight: 500;
-        border: 1px solid #e1bee7;
+        cursor: default;
+        line-height: 1.4;
+        transition: transform 0.1s ease;
     }
-    .badge-tool {
-        background-color: #e8f5e9;
-        color: #1b5e20;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.88rem;
-        margin: 3px;
-        display: inline-block;
-        font-weight: 500;
-        border: 1px solid #c8e6c9;
+    .custom-chip:hover {
+        transform: translateY(-1px);
     }
-    .badge-cert {
-        background-color: #fff3e0;
-        color: #e65100;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.88rem;
-        margin: 3px;
-        display: inline-block;
-        font-weight: 500;
-        border: 1px solid #ffe0b2;
+    /* Technical skills - Cyan / Blue */
+    .chip-tech {
+        background-color: rgba(2, 132, 199, 0.18);
+        color: #0284c7;
+        border: 1px solid rgba(2, 132, 199, 0.4);
+    }
+    /* Soft skills - Violet / Purple */
+    .chip-soft {
+        background-color: rgba(147, 51, 234, 0.18);
+        color: #9333ea;
+        border: 1px solid rgba(147, 51, 234, 0.4);
+    }
+    /* Tools - Green / Emerald */
+    .chip-tool {
+        background-color: rgba(22, 163, 74, 0.18);
+        color: #16a34a;
+        border: 1px solid rgba(22, 163, 74, 0.4);
+    }
+    /* Certifications - Amber / Orange */
+    .chip-cert {
+        background-color: rgba(234, 88, 12, 0.18);
+        color: #ea580c;
+        border: 1px solid rgba(234, 88, 12, 0.4);
+    }
+
+    /* Dark mode enhancements */
+    @media (prefers-color-scheme: dark) {
+        .chip-tech { color: #38bdf8; background-color: rgba(2, 132, 199, 0.25); border-color: rgba(56, 189, 248, 0.5); }
+        .chip-soft { color: #c084fc; background-color: rgba(147, 51, 234, 0.25); border-color: rgba(192, 132, 252, 0.5); }
+        .chip-tool { color: #4ade80; background-color: rgba(22, 163, 74, 0.25); border-color: rgba(74, 222, 128, 0.5); }
+        .chip-cert { color: #fb923c; background-color: rgba(234, 88, 12, 0.25); border-color: rgba(251, 146, 60, 0.5); }
     }
     .stTabs [data-baseweb="tab-list"] {
         gap: 16px;
@@ -197,39 +245,21 @@ Requirements:
                 h2.markdown(f"**Seniority Level:** `{ext.seniority_level.value}`")
                 h3.markdown(f"**Summary:** {ext.summary or 'N/A'}")
 
-                # Entities in tabs/columns
+                # Entities in columns
                 c1, c2 = st.columns(2)
                 with c1:
                     st.markdown("#### 💻 Technical Skills")
-                    if ext.technical_skills:
-                        for s in ext.technical_skills:
-                            snippet_txt = f" (Context: '{s.context_snippet}')" if s.context_snippet else ""
-                            st.markdown(f"<span class='badge-tech' title='{snippet_txt}'>{s.name}</span>", unsafe_allow_html=True)
-                    else:
-                        st.write("No technical skills detected.")
+                    st.markdown(render_badge_chips(ext.technical_skills, "tech"), unsafe_allow_html=True)
 
                     st.markdown("#### 🛠️ Tools & Technologies")
-                    if ext.tools_and_technologies:
-                        for t in ext.tools_and_technologies:
-                            req_badge = "Required" if t.is_required else "Preferred"
-                            st.markdown(f"<span class='badge-tool'>{t.name} ({req_badge})</span>", unsafe_allow_html=True)
-                    else:
-                        st.write("No tools detected.")
+                    st.markdown(render_badge_chips(ext.tools_and_technologies, "tool"), unsafe_allow_html=True)
 
                     st.markdown("#### 📜 Certifications")
-                    if ext.certifications:
-                        for cert in ext.certifications:
-                            st.markdown(f"<span class='badge-cert'>{cert.name}</span>", unsafe_allow_html=True)
-                    else:
-                        st.write("None detected.")
+                    st.markdown(render_badge_chips(ext.certifications, "cert"), unsafe_allow_html=True)
 
                 with c2:
                     st.markdown("#### 🤝 Soft Skills")
-                    if ext.soft_skills:
-                        for s in ext.soft_skills:
-                            st.markdown(f"<span class='badge-soft'>{s.name}</span>", unsafe_allow_html=True)
-                    else:
-                        st.write("No soft skills detected.")
+                    st.markdown(render_badge_chips(ext.soft_skills, "soft"), unsafe_allow_html=True)
 
                     st.markdown("#### 🎓 Qualifications & Degrees")
                     if ext.qualifications:
@@ -237,7 +267,7 @@ Requirements:
                             req_txt = "Required" if q.is_required else "Preferred"
                             st.info(f"**{q.degree.value}** in *{q.field_of_study or 'Related field'}* ({req_txt})")
                     else:
-                        st.write("No explicit degree specified.")
+                        st.caption("No explicit degree specified.")
 
                     st.markdown("#### ⏳ Experience Requirements")
                     if ext.experience_requirements:
@@ -247,7 +277,15 @@ Requirements:
                                 years_str = f"{exp.min_years} - {exp.max_years} years"
                             st.success(f"**{years_str}** | Domain: *{exp.domain_area or 'General'}*")
                     else:
-                        st.write("No specific years requirement found.")
+                        st.caption("No specific years requirement found.")
+
+                # Citations and Context Snippets Expander
+                evidence_items = [s for s in ext.technical_skills if s.context_snippet]
+                if evidence_items:
+                    with st.expander("📌 View Skill Evidence & Context Citations"):
+                        for s in evidence_items:
+                            clean_snip = str(s.context_snippet).replace("\r", " ").replace("\n", " ").strip()
+                            st.markdown(f"- **{s.name}**: *\"{clean_snip}\"*")
 
                 with st.expander("🔍 View Raw JSON Output"):
                     st.json(ext.model_dump())
