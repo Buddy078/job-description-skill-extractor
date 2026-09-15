@@ -99,3 +99,20 @@ Run the full pytest suite:
 pytest tests/ -v
 ```
 All 15 unit tests verify schemas, normalization, extractors, benchmark datasets, and evaluation metrics.
+
+TO START: 
+cd "C:\Users\rogith.k\Desktop\job-description-skill-extractor"
+.\.venv\Scripts\Activate.ps1
+python -m streamlit run src/ui/app.py
+
+TO START FIRST TIME:
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+# 1. Run all unit & integration tests
+python -m pytest tests/ -v
+
+# 2. Run the benchmark tool
+python -m src.cli benchmark
+python -m streamlit run src/ui/app.py
