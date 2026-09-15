@@ -1,0 +1,54 @@
+[
+  {
+    "Method":"Prompt-Based",
+    "Avg Latency (ms)":5.5,
+    "Schema Compliance Rate (%)":0.0,
+    "Overall F1 Score":0.923,
+    "Overall Precision":0.983,
+    "Overall Recall":0.897,
+    "Tech Skills F1":0.887,
+    "Soft Skills F1":0.883,
+    "Tools F1":1.0,
+    "Avg Tokens \/ JD":1297,
+    "Est. Cost \/ 1k JDs ($)":0.546
+  },
+  {
+    "Method":"Structured-Output",
+    "Avg Latency (ms)":3.0,
+    "Schema Compliance Rate (%)":100.0,
+    "Overall F1 Score":0.923,
+    "Overall Precision":0.983,
+    "Overall Recall":0.897,
+    "Tech Skills F1":0.887,
+    "Soft Skills F1":0.883,
+    "Tools F1":1.0,
+    "Avg Tokens \/ JD":993,
+    "Est. Cost \/ 1k JDs ($)":0.5
+  },
+  {
+    "Method":"Rule-Based NER",
+    "Avg Latency (ms)":2.8,
+    "Schema Compliance Rate (%)":100.0,
+    "Overall F1 Score":0.923,
+    "Overall Precision":0.983,
+    "Overall Recall":0.897,
+    "Tech Skills F1":0.887,
+    "Soft Skills F1":0.883,
+    "Tools F1":1.0,
+    "Avg Tokens \/ JD":0,
+    "Est. Cost \/ 1k JDs ($)":0.0
+  },
+  {
+    "Method":"Fine-Tuned Model",
+    "Avg Latency (ms)":44.1,
+    "Schema Compliance Rate (%)":100.0,
+    "Overall F1 Score":0.923,
+    "Overall Precision":0.983,
+    "Overall Recall":0.897,
+    "Tech Skills F1":0.887,
+    "Soft Skills F1":0.883,
+    "Tools F1":1.0,
+    "Avg Tokens \/ JD":515,
+    "Est. Cost \/ 1k JDs ($)":0.0
+  }
+]
