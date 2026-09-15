@@ -5,6 +5,15 @@ import html
 import streamlit as st
 import pandas as pd
 import altair as alt
+
+import sys
+from pathlib import Path
+
+# Add repository root to Python path for Streamlit Cloud
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from dotenv import load_dotenv
 
 from src.extractors.rule_based import RuleBasedExtractor
